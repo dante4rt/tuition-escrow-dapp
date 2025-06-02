@@ -5,7 +5,7 @@ export const HomePage: React.FC = () => {
   const { isConnected } = useAccount();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 flex flex-col justify-center min-h-[70vh]">
       <header className="text-center">
         <h1 className="text-4xl font-bold tracking-tight text-sky-400 sm:text-5xl">
           Secure Tuition & Donation Payments
