@@ -6,18 +6,10 @@ import { useReadContract } from "wagmi";
 import { AdminPage } from "./pages/AdminPage";
 import { TUITION_ESCROW_ABI, TUITION_ESCROW_ADDRESS } from "./lib/contracts";
 import { Navbar } from "./components/layout/Navbar";
+import Footer from "./components/layout/Footer";
+import { AppAdminContext } from "./lib/AppAdminContext";
 
 export type Page = "home" | "admin";
-
-interface AppContextType {
-  isAdmin: boolean;
-  isLoadingAdminStatus: boolean;
-}
-
-export const AppAdminContext = React.createContext<AppContextType>({
-  isAdmin: false,
-  isLoadingAdminStatus: true,
-});
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>("home");
@@ -29,7 +21,6 @@ const App: React.FC = () => {
     abi: TUITION_ESCROW_ABI,
     address: TUITION_ESCROW_ADDRESS,
     functionName: "owner",
-
     query: { enabled: !!TUITION_ESCROW_ADDRESS && isConnected },
   });
 
@@ -44,7 +35,6 @@ const App: React.FC = () => {
       setIsLoadingAdminStatus(false);
       return;
     }
-
     if (!isLoadingOwner && contractOwner) {
       const ownerAddress = (contractOwner as string).toLowerCase();
       const currentAddress = connectedAddress?.toLowerCase();
@@ -66,18 +56,11 @@ const App: React.FC = () => {
     <AppAdminContext.Provider value={adminContextValue}>
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 font-sans">
         <Navbar navigate={navigate} />
-
         <main className="flex-grow container mx-auto px-4 py-8">
           {currentPage === "home" && <HomePage />}
           {currentPage === "admin" && <AdminPage />}
         </main>
-
-        <footer className="text-center py-6 border-t border-slate-700">
-          <p className="text-sm text-slate-400">
-            <a href="#">Tuition Escrow dApp</a> &copy; {new Date().getFullYear()}
-          </p>
-        </footer>
-
+        <Footer />
         <Toaster
           position="bottom-right"
           toastOptions={{

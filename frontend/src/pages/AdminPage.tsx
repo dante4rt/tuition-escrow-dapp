@@ -2,7 +2,7 @@ import { useAccount } from "wagmi";
 import { ShieldAlert } from "lucide-react";
 import React, { useContext } from "react";
 import { AdminPaymentList } from "../components/AdminPaymentList";
-import { AppAdminContext } from "../App";
+import { AppAdminContext } from "../lib/AppAdminContext";
 
 export const AdminPage: React.FC = () => {
   const { isConnected, address: connectedAddress } = useAccount();

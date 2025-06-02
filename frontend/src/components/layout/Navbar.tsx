@@ -1,7 +1,8 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { ShieldCheck, Home } from "lucide-react";
 import React, { useContext, useState } from "react";
-import { AppAdminContext, type Page } from "../../App";
+import { AppAdminContext } from "../../lib/AppAdminContext";
+import type { Page } from "../../App";
 
 const CustomConnectButton = () => (
   <ConnectButton.Custom>
@@ -61,22 +62,24 @@ export const Navbar: React.FC<{ navigate: (page: Page) => void }> = ({ navigate 
           </div>
 
           <div className="hidden md:flex items-center gap-1">
-            <button
-              onClick={() => navigate("home")}
-              className="bg-transparent cursor-pointer text-slate-300 hover:bg-sky-800/40 hover:text-sky-300 px-4 py-2 rounded-md text-sm font-medium flex items-center transition-all duration-200"
-            >
-              <Home size={18} className="mr-2" />
-              Payer Dashboard
-            </button>
-
             {!isLoadingAdminStatus && isAdmin && (
-              <button
-                onClick={() => navigate("admin")}
-                className="bg-transparent cursor-pointer text-slate-300 hover:bg-sky-800/40 hover:text-sky-300 px-4 py-2 rounded-md text-sm font-medium flex items-center transition-all duration-200"
-              >
-                <ShieldCheck size={18} className="mr-2" />
-                Admin Panel
-              </button>
+              <>
+                <button
+                  onClick={() => navigate("home")}
+                  className="bg-transparent cursor-pointer text-slate-300 hover:bg-sky-800/40 hover:text-sky-300 px-4 py-2 rounded-md text-sm font-medium flex items-center transition-all duration-200"
+                >
+                  <Home size={18} className="mr-2" />
+                  Payer Dashboard
+                </button>
+
+                <button
+                  onClick={() => navigate("admin")}
+                  className="bg-transparent cursor-pointer text-slate-300 hover:bg-sky-800/40 hover:text-sky-300 px-4 py-2 rounded-md text-sm font-medium flex items-center transition-all duration-200"
+                >
+                  <ShieldCheck size={18} className="mr-2" />
+                  Admin Panel
+                </button>
+              </>
             )}
 
             <div className="ml-2">
