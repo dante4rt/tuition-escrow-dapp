@@ -7,7 +7,7 @@ import "../src/MockERC20.sol";
 import "forge-std/console.sol";
 
 /// @title Deployment Script for TuitionEscrow dApp
-/// @author
+/// @author Muhammad Ramadhani
 /// @notice This script deploys the TuitionEscrow contract and a mock USDC token, simulates a deposit and release.
 /// @dev Run using `forge script` with environment variables for private keys.
 contract DeployTuitionEscrow is Script {
@@ -39,7 +39,11 @@ contract DeployTuitionEscrow is Script {
         university = vm.addr(3); // Deterministically generated address for the university
 
         // Deploy mock USDC token
-        MockERC20 usdc = new MockERC20("Mock USDC", "mUSDC", INITIAL_SUPPLY / 1e6);
+        MockERC20 usdc = new MockERC20(
+            "Mock USDC",
+            "mUSDC",
+            INITIAL_SUPPLY / 1e6
+        );
         console.log("USDC Token deployed to:", address(usdc));
 
         // Deploy the TuitionEscrow contract with admin and USDC token address
@@ -55,7 +59,11 @@ contract DeployTuitionEscrow is Script {
         // Simulate deposit by the payer
         vm.startBroadcast(payerPk);
         usdc.approve(address(escrow), DEPOSIT_AMOUNT);
-        bytes32 paymentId = escrow.depositTuition(university, DEPOSIT_AMOUNT, "INV-001");
+        bytes32 paymentId = escrow.depositTuition(
+            university,
+            DEPOSIT_AMOUNT,
+            "INV-001"
+        );
         console.logBytes32(paymentId);
         console.log("Tuition deposited with Payment ID shown above");
 
