@@ -6,8 +6,13 @@ import {
   usePublicClient,
   useWatchContractEvent,
 } from "wagmi";
-import { TUITION_ESCROW_ABI, TUITION_ESCROW_ADDRESS } from "../lib/contracts";
-import { formatUnits, decodeEventLog } from "viem";
+import {
+  TUITION_ESCROW_ABI,
+  TUITION_ESCROW_ADDRESS,
+  USDC_ABI,
+  USDC_ADDRESS,
+} from "../lib/contracts";
+import { formatUnits, decodeEventLog, type Log, type AbiEvent } from "viem";
 import { CheckCircle, XCircle, RefreshCw, AlertTriangle, Inbox } from "lucide-react";
 import toast from "react-hot-toast";
 import { sepolia } from "viem/chains";
@@ -29,6 +34,7 @@ interface Payment {
 export const AdminPaymentList: React.FC = () => {
   const { address: accountAddress, chain } = useAccount();
   const publicClient = usePublicClient();
+
   const {
     writeContractAsync,
     data: actionHash,
@@ -57,11 +63,13 @@ export const AdminPaymentList: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
+      const eventFragment = typedTuitionEscrowAbi.find(
+        (item) => item.type === "event" && item.name === "PaymentDeposited"
+      );
+      if (!eventFragment) throw new Error("PaymentDeposited event not found in ABI");
       const depositLogs = await publicClient.getLogs({
         address: typedTuitionEscrowAddress,
-        event: typedTuitionEscrowAbi.find(
-          (item) => item.name === "PaymentDeposited" && item.type === "event"
-        ) as any,
+        event: eventFragment as AbiEvent,
         fromBlock: BigInt(0),
         toBlock: "latest",
       });
@@ -75,28 +83,29 @@ export const AdminPaymentList: React.FC = () => {
           topics: log.topics,
         });
 
-        const args = decodedLog.args as any;
-        if (!args || !args.paymentId) continue;
+        const args = decodedLog.args as unknown as Record<string, unknown>;
+        if (!args || typeof args.paymentId !== "string") continue;
 
-        const paymentId = args.paymentId as string;
+        const paymentId = args.paymentId;
 
         const paymentDetails = (await publicClient.readContract({
           address: typedTuitionEscrowAddress,
           abi: typedTuitionEscrowAbi,
           functionName: "getPaymentDetails",
           args: [paymentId],
-        })) as any;
+        })) as Record<string, unknown>;
 
         if (
           paymentDetails &&
+          typeof paymentDetails.payer === "string" &&
           paymentDetails.payer !== "0x0000000000000000000000000000000000000000"
         ) {
           newPaymentsMap.set(paymentId, {
             paymentId: paymentId,
             payer: paymentDetails.payer,
-            university: paymentDetails.university,
+            university: paymentDetails.university as string,
             amount: formatUnits(paymentDetails.amount as bigint, usdcDecimals),
-            invoiceRef: paymentDetails.invoiceRef,
+            invoiceRef: paymentDetails.invoiceRef as string,
             status: Number(paymentDetails.status),
             depositTimestamp: new Date(
               Number(paymentDetails.depositTimestamp as bigint) * 1000
@@ -106,80 +115,19 @@ export const AdminPaymentList: React.FC = () => {
         }
       }
       setPayments(newPaymentsMap);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      let message = "Failed to fetch payment history.";
+      if (err && typeof err === "object") {
+        if ("message" in err && typeof (err as { message: string }).message === "string") {
+          message += " " + (err as { message: string }).message;
+        }
+      }
       console.error("Error fetching payments:", err);
-      setError("Failed to fetch payment history. " + (err.message || ""));
+      setError(message);
     } finally {
       setIsLoading(false);
     }
   }, [publicClient, usdcDecimals]);
-
-  useEffect(() => {
-    if (publicClient && typedTuitionEscrowAddress) {
-      fetchPastEventsAndDetails();
-    }
-  }, [publicClient, typedTuitionEscrowAddress, fetchPastEventsAndDetails]);
-
-  useWatchContractEvent({
-    address: typedTuitionEscrowAddress,
-    abi: typedTuitionEscrowAbi,
-    eventName: "PaymentDeposited",
-    onLogs(logs) {
-      toast.success("New payment deposited! Refreshing list...");
-      fetchPastEventsAndDetails();
-    },
-    onError(error) {
-      console.error("Error watching PaymentDeposited events:", error);
-    },
-  });
-  useWatchContractEvent({
-    address: typedTuitionEscrowAddress,
-    abi: typedTuitionEscrowAbi,
-    eventName: "PaymentReleased",
-    onLogs(logs: any) {
-      const paymentId = logs[0]?.args?.paymentId;
-      toast.success(
-        `Payment ${
-          paymentId ? paymentId.substring(0, 10) + "..." : ""
-        } released! Refreshing list...`
-      );
-      fetchPastEventsAndDetails();
-    },
-    onError(error) {
-      console.error("Error watching PaymentReleased events:", error);
-    },
-  });
-  useWatchContractEvent({
-    address: typedTuitionEscrowAddress,
-    abi: typedTuitionEscrowAbi,
-    eventName: "PaymentRefunded",
-    onLogs(logs: any) {
-      const paymentId = logs[0]?.args?.paymentId;
-      toast.success(
-        `Payment ${
-          paymentId ? paymentId.substring(0, 10) + "..." : ""
-        } refunded! Refreshing list...`
-      );
-      fetchPastEventsAndDetails();
-    },
-    onError(error) {
-      console.error("Error watching PaymentRefunded events:", error);
-    },
-  });
-
-  useEffect(() => {
-    if (isActionConfirmed) {
-      toast.success(`Action confirmed successfully!`, { id: "adminAction" });
-      fetchPastEventsAndDetails();
-      setProcessingPaymentId(null);
-    }
-    if (actionReceiptError) {
-      toast.error(`Action failed: ${actionReceiptError.message.substring(0, 100)}`, {
-        id: "adminAction",
-      });
-      setProcessingPaymentId(null);
-    }
-  }, [isActionConfirmed, actionReceiptError, fetchPastEventsAndDetails]);
 
   const handleAction = async (paymentId: string, action: "releasePayment" | "refundPayment") => {
     if (!accountAddress || !typedTuitionEscrowAddress) {
@@ -197,11 +145,23 @@ export const AdminPaymentList: React.FC = () => {
         functionName: action,
         args: [paymentId],
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      let message = `${actionText} failed.`;
+      if (err && typeof err === "object") {
+        if (
+          "shortMessage" in err &&
+          typeof (err as { shortMessage: string }).shortMessage === "string"
+        ) {
+          message = `${actionText} failed: ${(err as { shortMessage: string }).shortMessage}`;
+        } else if ("message" in err && typeof (err as { message: string }).message === "string") {
+          message = `${actionText} failed: ${(err as { message: string }).message.substring(
+            0,
+            100
+          )}`;
+        }
+      }
       console.error(`${actionText} failed:`, err);
-      toast.error(`${actionText} failed: ${err.shortMessage || err.message.substring(0, 100)}`, {
-        id: "adminAction",
-      });
+      toast.error(message, { id: "adminAction" });
       setProcessingPaymentId(null);
     }
   };
@@ -242,6 +202,136 @@ export const AdminPaymentList: React.FC = () => {
     return Number(b.blockNumber || BigInt(0)) - Number(a.blockNumber || BigInt(0));
   });
 
+  useWatchContractEvent({
+    address: typedTuitionEscrowAddress,
+    abi: typedTuitionEscrowAbi,
+    eventName: "PaymentDeposited",
+    onLogs() {
+      toast.success("New payment deposited! Refreshing list...");
+      fetchPastEventsAndDetails();
+    },
+    onError(error) {
+      console.error("Error watching PaymentDeposited events:", error);
+    },
+  });
+
+  useWatchContractEvent({
+    address: typedTuitionEscrowAddress,
+    abi: typedTuitionEscrowAbi,
+    eventName: "PaymentReleased",
+    onLogs(logs: Log[]) {
+      let paymentId: string | undefined = undefined;
+      if (logs.length > 0) {
+        try {
+          const decoded = decodeEventLog({
+            abi: typedTuitionEscrowAbi,
+            data: logs[0].data,
+            topics: logs[0].topics,
+          });
+          if (
+            decoded.args &&
+            typeof decoded.args === "object" &&
+            !Array.isArray(decoded.args) &&
+            "paymentId" in decoded.args &&
+            typeof (decoded.args as { paymentId: unknown }).paymentId === "string"
+          ) {
+            paymentId = (decoded.args as { paymentId: string }).paymentId;
+          }
+        } catch {
+          // ignore decoding errors
+        }
+      }
+      toast.success(
+        `Payment ${
+          paymentId ? paymentId.substring(0, 10) + "..." : ""
+        } released! Refreshing list...`
+      );
+      fetchPastEventsAndDetails();
+    },
+    onError(error) {
+      console.error("Error watching PaymentReleased events:", error);
+    },
+  });
+
+  useWatchContractEvent({
+    address: typedTuitionEscrowAddress,
+    abi: typedTuitionEscrowAbi,
+    eventName: "PaymentRefunded",
+    onLogs(logs: Log[]) {
+      let paymentId: string | undefined = undefined;
+      if (logs.length > 0) {
+        try {
+          const decoded = decodeEventLog({
+            abi: typedTuitionEscrowAbi,
+            data: logs[0].data,
+            topics: logs[0].topics,
+          });
+          if (
+            decoded.args &&
+            typeof decoded.args === "object" &&
+            !Array.isArray(decoded.args) &&
+            "paymentId" in decoded.args &&
+            typeof (decoded.args as { paymentId: unknown }).paymentId === "string"
+          ) {
+            paymentId = (decoded.args as { paymentId: string }).paymentId;
+          }
+        } catch {
+          // ignore decoding errors
+        }
+      }
+      toast.success(
+        `Payment ${
+          paymentId ? paymentId.substring(0, 10) + "..." : ""
+        } refunded! Refreshing list...`
+      );
+      fetchPastEventsAndDetails();
+    },
+    onError(error) {
+      console.error("Error watching PaymentRefunded events:", error);
+    },
+  });
+
+  useEffect(() => {
+    if (isActionConfirmed) {
+      toast.success(`Action confirmed successfully!`, { id: "adminAction" });
+      fetchPastEventsAndDetails();
+      setProcessingPaymentId(null);
+    }
+    if (actionReceiptError) {
+      toast.error(`Action failed: ${actionReceiptError.message.substring(0, 100)}`, {
+        id: "adminAction",
+      });
+      setProcessingPaymentId(null);
+    }
+  }, [isActionConfirmed, actionReceiptError, fetchPastEventsAndDetails]);
+
+  useEffect(() => {
+    if (publicClient && typedTuitionEscrowAddress) {
+      fetchPastEventsAndDetails();
+    }
+  }, [publicClient, fetchPastEventsAndDetails]);
+
+  useEffect(() => {
+    const fetchDecimals = async () => {
+      if (!publicClient || !USDC_ADDRESS) return;
+      try {
+        const decimals = await publicClient.readContract({
+          address: USDC_ADDRESS as `0x${string}`,
+          abi: USDC_ABI,
+          functionName: "decimals",
+        });
+        if (typeof decimals === "number") {
+          setUsdcDecimals(decimals);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch USDC decimals, using default.", err);
+        setUsdcDecimals(6);
+      }
+    };
+
+    fetchDecimals();
+  }, [publicClient]);
+
   if (isLoading && sortedPaymentsArray.length === 0) {
     return (
       <div className="text-center py-10">
@@ -250,6 +340,7 @@ export const AdminPaymentList: React.FC = () => {
       </div>
     );
   }
+
   if (error) {
     return (
       <div className="bg-red-900/30 border border-red-700 text-red-300 px-4 py-3 rounded-lg text-center">
@@ -263,6 +354,7 @@ export const AdminPaymentList: React.FC = () => {
       </div>
     );
   }
+
   if (!isLoading && sortedPaymentsArray.length === 0) {
     return (
       <div className="text-center py-10 text-slate-400">

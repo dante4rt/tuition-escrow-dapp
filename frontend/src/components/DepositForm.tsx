@@ -14,15 +14,15 @@ import { sepolia } from "viem/chains";
 const universities = [
   {
     name: "Metropolis University",
-    address: "0xDcDc35993929ac872c7887477396145332721650" as `0x${string}`,
+    address: "0x6813Eb9362372EEF6200f3b1dbC3f819671cBA69" as `0x${string}`,
   },
   {
     name: "Gotham City College",
-    address: "0x2222222222222222222222222222222222222222" as `0x${string}`,
+    address: "0x22222222222222222222222222222222222222222" as `0x${string}`,
   },
   {
     name: "Starling City Institute",
-    address: "0x3333333333333333333333333333333333333333" as `0x${string}`,
+    address: "0x33333333333333333333333333333333333333333" as `0x${string}`,
   },
 ];
 
