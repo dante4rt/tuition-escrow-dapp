@@ -1,54 +1,66 @@
-# React + TypeScript + Vite
+# Tuition Escrow dApp Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This directory contains the React + TypeScript + Vite frontend for the Tuition Escrow dApp.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Connect wallet (MetaMask, RainbowKit)
+- Deposit USDC to a university (select from hardcoded list)
+- Enter amount and invoice reference
+- See your USDC balance and quick-select deposit amounts
+- Admin dashboard: view pending payments, release or refund
+- Responsive, modern UI with Tailwind CSS
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 1. Install Dependencies
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 2. Configure Environment
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Copy `.env.example` to `.env` and fill in your contract addresses:
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+```env
+VITE_TUITION_ESCROW_CONTRACT_ADDRESS=your_deployed_tuition_escrow_address
+VITE_USDC_TOKEN_ADDRESS=your_sepolia_usdc_token_address
 ```
+
+### 3. Start Development Server
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+## Usage
+
+- Connect your wallet (ensure Sepolia network)
+- Select a university, enter amount and invoiceRef, deposit USDC
+- Admin: view and manage pending payments
+
+## ABI
+
+- The TuitionEscrow contract ABI is in `src/lib/contracts.ts` (copied from `contract/out/TuitionEscrow.sol/TuitionEscrow.json`)
+
+## Assumptions
+
+- Universities are a hardcoded list of valid Ethereum addresses
+- Admin is a single wallet address
+- USDC is a mock ERC20 or public testnet token
+
+## Tech Stack
+
+- React, TypeScript, Vite
+- Tailwind CSS
+- Wagmi, Viem, RainbowKit
+- Lucide React (icons)
+- React Hot Toast (notifications)
+
+## Comments
+
+- All logic is on-chain; no backend
+- For contract deployment and ABI, see the main project README

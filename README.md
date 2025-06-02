@@ -1,70 +1,52 @@
 # Tuition & Donation Escrow dApp
 
-## Project Overview
+## Take-home Exam (web3)
 
-A decentralized application (dApp) for managing tuition fees or donations using USDC stablecoin. This project features a Solidity smart contract for escrowing funds and a React frontend for user interaction. Payers can deposit USDC, and an administrator can release these funds to designated universities/recipients or refund them to the payer.
+This project is a submission for the cross-border payment system take-home exam. It implements a minimal dApp for tuition/donation payments using USDC, with all logic on-chain.
 
-**Key Features:**
-* USDC Deposits: Users can deposit USDC into an escrow contract.
-* Admin Control: A designated admin can release or refund payments.
-* Secure: Utilizes OpenZeppelin contracts for Ownable and ReentrancyGuard.
-* Event-Driven: Emits events for all major actions (deposits, releases, refunds).
-* Transparent: All transactions are recorded on the blockchain.
-* User-Friendly UI: React frontend with Tailwind CSS for a clean interface.
-* Wallet Integration: Connects with MetaMask (or other Web3 wallets).
+---
 
-## Tech Stack
+### 📜 Brief
 
-**Smart Contract (Backend):**
-* Solidity ^0.8.20
-* Foundry (for development, testing, deployment)
-* OpenZeppelin Contracts (for Ownable, ReentrancyGuard, ERC20 interface)
+A cross-border payment system using stablecoins (USDC) to transfer tuition fees or donations from users to universities. Users deposit USDC to an escrow contract, and an admin can release or refund the payment. All logic is on-chain.
 
-**Frontend:**
-* React (with TypeScript)
-* Vite (build tool)
-* Tailwind CSS (styling)
-* Wagmi, Viem, and Rainbowkit (blockchain interaction)
-* Lucide React (icons)
-* Framer Motion (animations - optional)
-* React Hot Toast (notifications)
+---
 
-**Blockchain:**
-* Deployed on Sepolia Testnet
-* USDC (Testnet version)
+## ✅ Requirements Mapping
 
-## Prerequisites
+- **Smart Contract:**
+  - Solidity, with comments and NatSpec
+  - `initialize(address payer, address university, uint256 amount, string calldata invoiceRef)`
+  - `deposit()`, `release()`, `refund()`
+  - Events: `Deposited`, `Released`, `Refunded`
+  - Double release/refund protection
+- **Frontend:**
+  - React + TypeScript + Tailwind
+  - Wallet connect (MetaMask)
+  - Form: select university, enter amount/invoiceRef, deposit
+  - Admin: view pending payments, release/refund
+- **Network:**
+  - Sepolia testnet, USDC (mock or public)
+- **Deployment:**
+  - Contract deployed to Sepolia (address below)
+  - README with local run instructions, contract address, ABI, assumptions
+  - Foundry test suite
+- **Bonus:**
+  - (Optional) Deploy to Vercel
 
-* Node.js (v18+ recommended)
-* npm or yarn
-* Foundry (Solidity toolkit): [Installation Guide](https://getfoundry.sh/)
-* MetaMask browser extension (or other Web3 wallet)
+---
 
-## Project Structure
+## Features
 
-```
-.
-├── contract/  # Foundry project
-│   ├── src/                  # Solidity contracts (TuitionEscrow.sol, MockERC20.sol)
-│   ├── test/                 # Solidity tests (TuitionEscrow.t.sol)
-│   ├── lib/                  # Dependencies (e.g., OpenZeppelin)
-│   ├── foundry.toml
-│   └── ...
-├── frontend/  # React project
-│   ├── src/
-│   │   ├── App.tsx
-│   │   ├── main.tsx
-│   │   ├── components/
-│   │   ├── lib/              # ABIs, contract addresses
-│   │   └── pages/
-│   ├── public/
-│   ├── tailwind.config.js
-│   ├── vite.config.ts
-│   └── ...
-└── README.md
-```
+- USDC deposits to escrow contract
+- Admin can release or refund payments
+- All actions emit events for transparency
+- User-friendly React frontend with wallet integration
+- Type-safe, modern codebase
 
-## Getting Started
+---
+
+## Getting Started (How to Run Locally)
 
 ### 1. Clone the Repository
 
@@ -73,107 +55,75 @@ git clone https://github.com/dante4rt/tuition-escrow-dapp.git
 cd tuition-escrow-dapp
 ```
 
-### 2. Setup Smart Contract (Foundry)
+### 2. Smart Contract (Foundry)
 
 ```bash
 cd contract
-forge install OpenZeppelin/openzeppelin-contracts
+forge install
 forge build
-```
-
-### 3. Run Smart Contract Tests
-
-```bash
 forge test -vvv
 ```
 
-### 4. Deploy Smart Contract (to Sepolia)
-
-* **Environment Variables:** Create a `.env` file in `contract` (or set them in your shell):
-    ```env
-    SEPOLIA_RPC_URL="your_sepolia_rpc_url_from_infura_or_alchemy"
-    DEPLOYER_PRIVATE_KEY="your_deployer_wallet_private_key"
-    ETHERSCAN_API_KEY="your_etherscan_api_key_for_verification" # Optional
-    
-    # You'll need the address of a USDC token on Sepolia
-    # Either a public one or one you deploy (MockERC20.sol)
-    USDC_TOKEN_ADDRESS_SEPOLIA="address_of_usdc_on_sepolia"
-    ADMIN_WALLET_ADDRESS="your_admin_wallet_address" # This will be the owner
-    ```
-
-* **Deployment Script (Example using `forge create`):**
-    You can create a deployment script in `script/Deploy.s.sol` or run directly:
-    ```bash
-    # First, deploy MockERC20 if you need your own (optional)
-    # forge create --rpc-url $SEPOLIA_RPC_URL --private-key $DEPLOYER_PRIVATE_KEY src/MockERC20.sol:MockERC20 --constructor-args "Mock USDC" "mUSDC" "1000000" --verify --etherscan-api-key $ETHERSCAN_API_KEY
-    # Note the deployed address for USDC_TOKEN_ADDRESS_SEPOLIA
-
-    # Deploy TuitionEscrow
-    forge create --rpc-url $SEPOLIA_RPC_URL \
-                 --private-key $DEPLOYER_PRIVATE_KEY \
-                 src/TuitionEscrow.sol:TuitionEscrow \
-                 --constructor-args "$USDC_TOKEN_ADDRESS_SEPOLIA" "$ADMIN_WALLET_ADDRESS" \
-                 --verify --etherscan-api-key $ETHERSCAN_API_KEY # Add --legacy if needed for some RPCs
-    ```
-    Note the deployed `TuitionEscrow` contract address.
-
-### 5. Setup Frontend
+- Edit `.env` with your Sepolia RPC, private key, and USDC address (see below).
+- Deploy:
 
 ```bash
-cd ../tuition_escrow_frontend # Or your frontend directory name
-npm install
+forge script script/Deploy.s.sol --rpc-url $SEPOLIA_RPC_URL --private-key $DEPLOYER_PRIVATE_KEY
 ```
 
-* **Environment Variables:** Create a `.env` file in the `frontend` root:
-    ```env
-    VITE_TUITION_ESCROW_CONTRACT_ADDRESS="your_deployed_tuition_escrow_address"
-    VITE_USDC_TOKEN_ADDRESS="your_sepolia_usdc_token_address"
-    VITE_SEPOLIA_CHAIN_ID="11155111" # Sepolia Chain ID
-    # VITE_SEPOLIA_RPC_URL="your_sepolia_rpc_url" # Optional, if you need a specific provider beyond MetaMask
-    ```
-* **Update Contract ABIs:**
-    * Copy the ABI from `contract/out/TuitionEscrow.sol/TuitionEscrow.json` (the `abi` array) into `frontend/src/lib/contracts.ts` (or a similar file).
-    * Ensure you have a standard ERC20 ABI for USDC as well.
-
-### 6. Run Frontend Development Server
+### 3. Frontend
 
 ```bash
+cd ../frontend
+npm install
+cp .env.example .env # Edit with your contract addresses
 npm run dev
 ```
-Open your browser to `http://localhost:5173` (or the port Vite assigns).
 
-## Usage
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-1.  **Connect Wallet:** Click "Connect Wallet" and choose MetaMask (ensure it's set to Sepolia network).
-2.  **Payer View (Home Page):**
-    * Select a university from the dropdown.
-    * Enter the amount of USDC to deposit.
-    * Provide an invoice reference.
-    * Click "Approve & Deposit". This will trigger two MetaMask transactions:
-        1.  Approve the `TuitionEscrow` contract to spend your USDC.
-        2.  Deposit the USDC into the escrow.
-3.  **Admin View (Admin Page):**
-    * If the connected wallet is the admin address, you'll see the Admin Dashboard.
-    * A list of pending payments will be displayed.
-    * For each pending payment, the admin can choose to:
-        * **Release:** Transfer the USDC to the university.
-        * **Refund:** Return the USDC to the original payer.
+---
 
-## Deployed Contract Addresses (Sepolia)
+## Contract Details
 
-* **TuitionEscrow Contract:** `YOUR_DEPLOYED_TUITION_ESCROW_ADDRESS`
-* **USDC Token (if you deployed a mock):** `YOUR_DEPLOYED_MOCK_USDC_ADDRESS`
-* (If using a public USDC, list that one)
+- **TuitionEscrow Contract Address (Sepolia):** `0xea158C90CD570Cd123be71604CF794EAD6c2F233`
+- **USDC Token Address (Sepolia):** `0xb532baA9582a59920026d39d06BBf82fa291cF78`
+- **ABI:** See `frontend/src/lib/contracts.ts` or `contract/out/TuitionEscrow.sol/TuitionEscrow.json`
 
-## Video Walkthrough Link
+---
 
-* [Link to your video walkthrough] (e.g., YouTube, Loom)
+## Assumptions
 
-## Future Improvements / Considerations
+- Universities are a hardcoded list of valid Ethereum addresses.
+- Admin is a single wallet address set at deployment.
+- USDC is a mock ERC20 deployed to Sepolia (or a public testnet USDC).
+- No backend; all logic is on-chain.
 
-* Implement a more robust payment ID retrieval system for the admin (e.g., using a subgraph or backend indexer).
-* Add pagination for the admin payment list.
-* More detailed user transaction history.
-* Support for WalletConnect or other wallet providers.
-* Formal verification for the smart contract.
-* Gas optimizations.
+---
+
+## Testing
+
+- Run all contract tests:
+
+```bash
+cd contract
+forge test -vvv
+```
+
+---
+
+## Video Walkthrough
+
+- TBA
+
+---
+
+## Deliverables
+
+- [x] GitHub repo with smart contract + frontend
+- [x] Contract address on testnet
+- [x] 3–5 minute video walkthrough
+
+---
+
+For more details, see the `contract/README.md` and `frontend/README.md`.

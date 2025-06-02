@@ -1,66 +1,76 @@
-## Foundry
+# TuitionEscrow Solidity Smart Contract
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+This directory contains the Solidity smart contract and Foundry project for the Tuition Escrow dApp.
 
-Foundry consists of:
+## Features
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
-
-## Documentation
-
-https://book.getfoundry.sh/
+- USDC-based escrow for tuition/donation payments
+- Admin can release or refund payments
+- Events: Deposited, Released, Refunded
+- Double release/refund protection
+- Fully tested with Foundry
 
 ## Usage
 
-### Build
+### 1. Install Dependencies
 
-```shell
-$ forge build
+```bash
+forge install
 ```
 
-### Test
+### 2. Build Contracts
 
-```shell
-$ forge test
+```bash
+forge build
 ```
 
-### Format
+### 3. Run Tests
 
-```shell
-$ forge fmt
+```bash
+forge test -vvv
 ```
 
-### Gas Snapshots
+### 4. Deploy to Sepolia
 
-```shell
-$ forge snapshot
+- Set up `.env` with your RPC URL, deployer private key, payer private key and Etherscan API Key:
+
+```env
+RPC_URL="your_sepolia_rpc_url"
+PRIVATE_KEY="your_private_key"
+PAYER_PRIVATE_KEY="your_payer_private_key"
+API_KEY="your_etherscan_key"
 ```
 
-### Anvil
+- Deploy:
 
-```shell
-$ anvil
+```bash
+forge script script/Deploy.s.sol --rpc-url $RPC_URL --private-key $PRIVATE_KEY
 ```
 
-### Deploy
+- The deployed contract address will be shown in the output.
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
+### 5. ABI
 
-### Cast
+ABI is generated at `out/TuitionEscrow.sol/TuitionEscrow.json` after build.
 
-```shell
-$ cast <subcommand>
-```
+## Assumptions
 
-### Help
+- USDC is a mock ERC20 or public testnet token.
+- Admin is a single wallet address.
+- All logic is on-chain; no backend.
 
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+## Documentation
+
+- [Foundry Book](https://book.getfoundry.sh/)
+
+## Scripts
+
+- `script/Deploy.s.sol`: Deployment script for TuitionEscrow.
+
+## Help
+
+```bash
+forge --help
+anvil --help
+cast --help
 ```
