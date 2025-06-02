@@ -27,17 +27,9 @@ contract TuitionEscrowTest is Test {
         uint256 timestamp
     );
 
-    event PaymentReleased(
-        bytes32 indexed paymentId,
-        address indexed admin,
-        uint256 timestamp
-    );
+    event PaymentReleased(bytes32 indexed paymentId, address indexed admin, uint256 timestamp);
 
-    event PaymentRefunded(
-        bytes32 indexed paymentId,
-        address indexed admin,
-        uint256 timestamp
-    );
+    event PaymentRefunded(bytes32 indexed paymentId, address indexed admin, uint256 timestamp);
 
     event AdminUpdated(address indexed oldAdmin, address indexed newAdmin);
 
@@ -48,11 +40,7 @@ contract TuitionEscrowTest is Test {
         vm.label(anotherUser, "AnotherUser");
 
         vm.startPrank(admin);
-        usdc = new MockERC20(
-            "Mock USDC",
-            "mUSDC",
-            INITIAL_USDC_SUPPLY / (10 ** 6)
-        );
+        usdc = new MockERC20("Mock USDC", "mUSDC", INITIAL_USDC_SUPPLY / (10 ** 6));
         vm.stopPrank();
 
         tuitionEscrow = new TuitionEscrow(address(usdc), admin);
@@ -68,20 +56,11 @@ contract TuitionEscrowTest is Test {
     function test_Fail_ReleasePayment_NotOwner() public {
         vm.startPrank(payer);
         usdc.approve(address(tuitionEscrow), DEPOSIT_AMOUNT);
-        bytes32 paymentId = tuitionEscrow.depositTuition(
-            university,
-            DEPOSIT_AMOUNT,
-            "INV-001"
-        );
+        bytes32 paymentId = tuitionEscrow.depositTuition(university, DEPOSIT_AMOUNT, "INV-001");
         vm.stopPrank();
 
         vm.startPrank(anotherUser);
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "OwnableUnauthorizedAccount(address)",
-                anotherUser
-            )
-        );
+        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", anotherUser));
         tuitionEscrow.releasePayment(paymentId);
         vm.stopPrank();
     }
@@ -89,20 +68,11 @@ contract TuitionEscrowTest is Test {
     function test_Fail_RefundPayment_NotOwner() public {
         vm.startPrank(payer);
         usdc.approve(address(tuitionEscrow), DEPOSIT_AMOUNT);
-        bytes32 paymentId = tuitionEscrow.depositTuition(
-            university,
-            DEPOSIT_AMOUNT,
-            "INV-001"
-        );
+        bytes32 paymentId = tuitionEscrow.depositTuition(university, DEPOSIT_AMOUNT, "INV-001");
         vm.stopPrank();
 
         vm.startPrank(anotherUser);
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "OwnableUnauthorizedAccount(address)",
-                anotherUser
-            )
-        );
+        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", anotherUser));
         tuitionEscrow.refundPayment(paymentId);
         vm.stopPrank();
     }
@@ -112,36 +82,20 @@ contract TuitionEscrowTest is Test {
         usdc.approve(address(tuitionEscrow), DEPOSIT_AMOUNT);
         uint256 payerBalanceBefore = usdc.balanceOf(payer);
         uint256 contractBalanceBefore = usdc.balanceOf(address(tuitionEscrow));
-        bytes32 paymentId = tuitionEscrow.depositTuition(
-            university,
-            DEPOSIT_AMOUNT,
-            "INV-001"
-        );
+        bytes32 paymentId = tuitionEscrow.depositTuition(university, DEPOSIT_AMOUNT, "INV-001");
         vm.stopPrank();
 
+        assertEq(usdc.balanceOf(payer), payerBalanceBefore - DEPOSIT_AMOUNT, "Payer balance incorrect");
         assertEq(
-            usdc.balanceOf(payer),
-            payerBalanceBefore - DEPOSIT_AMOUNT,
-            "Payer balance incorrect"
-        );
-        assertEq(
-            usdc.balanceOf(address(tuitionEscrow)),
-            contractBalanceBefore + DEPOSIT_AMOUNT,
-            "Contract balance incorrect"
+            usdc.balanceOf(address(tuitionEscrow)), contractBalanceBefore + DEPOSIT_AMOUNT, "Contract balance incorrect"
         );
 
-        TuitionEscrow.Payment memory p = tuitionEscrow.getPaymentDetails(
-            paymentId
-        );
+        TuitionEscrow.Payment memory p = tuitionEscrow.getPaymentDetails(paymentId);
         assertEq(p.payer, payer, "Payment payer incorrect");
         assertEq(p.university, university, "Payment university incorrect");
         assertEq(p.amount, DEPOSIT_AMOUNT, "Payment amount incorrect");
         assertEq(p.invoiceRef, "INV-001", "Payment invoiceRef incorrect");
-        assertEq(
-            uint(p.status),
-            uint(TuitionEscrow.PaymentStatus.Pending),
-            "Payment status incorrect"
-        );
+        assertEq(uint256(p.status), uint256(TuitionEscrow.PaymentStatus.Pending), "Payment status incorrect");
         assertTrue(p.depositTimestamp > 0, "Deposit timestamp should be set");
 
         assertEq(tuitionEscrow.nextPaymentNonce(), 1, "Nonce should increment");
@@ -181,11 +135,7 @@ contract TuitionEscrowTest is Test {
     function test_ReleasePayment_Success() public {
         vm.startPrank(payer);
         usdc.approve(address(tuitionEscrow), DEPOSIT_AMOUNT);
-        bytes32 paymentId = tuitionEscrow.depositTuition(
-            university,
-            DEPOSIT_AMOUNT,
-            "INV-004"
-        );
+        bytes32 paymentId = tuitionEscrow.depositTuition(university, DEPOSIT_AMOUNT, "INV-004");
         vm.stopPrank();
 
         vm.startPrank(admin);
@@ -197,9 +147,7 @@ contract TuitionEscrowTest is Test {
         vm.stopPrank();
 
         assertEq(
-            usdc.balanceOf(university),
-            uniBalanceBefore + DEPOSIT_AMOUNT,
-            "University balance incorrect after release"
+            usdc.balanceOf(university), uniBalanceBefore + DEPOSIT_AMOUNT, "University balance incorrect after release"
         );
         assertEq(
             usdc.balanceOf(address(tuitionEscrow)),
@@ -207,14 +155,8 @@ contract TuitionEscrowTest is Test {
             "Contract balance incorrect after release"
         );
 
-        TuitionEscrow.Payment memory p = tuitionEscrow.getPaymentDetails(
-            paymentId
-        );
-        assertEq(
-            uint(p.status),
-            uint(TuitionEscrow.PaymentStatus.Released),
-            "Payment status not Released"
-        );
+        TuitionEscrow.Payment memory p = tuitionEscrow.getPaymentDetails(paymentId);
+        assertEq(uint256(p.status), uint256(TuitionEscrow.PaymentStatus.Released), "Payment status not Released");
     }
 
     function test_Fail_ReleasePayment_NonExistent() public {
@@ -228,11 +170,7 @@ contract TuitionEscrowTest is Test {
     function test_Fail_ReleasePayment_AlreadyReleased() public {
         vm.startPrank(payer);
         usdc.approve(address(tuitionEscrow), DEPOSIT_AMOUNT);
-        bytes32 paymentId = tuitionEscrow.depositTuition(
-            university,
-            DEPOSIT_AMOUNT,
-            "INV-005"
-        );
+        bytes32 paymentId = tuitionEscrow.depositTuition(university, DEPOSIT_AMOUNT, "INV-005");
         vm.stopPrank();
 
         vm.prank(admin);
@@ -247,11 +185,7 @@ contract TuitionEscrowTest is Test {
     function test_Fail_ReleasePayment_AlreadyRefunded() public {
         vm.startPrank(payer);
         usdc.approve(address(tuitionEscrow), DEPOSIT_AMOUNT);
-        bytes32 paymentId = tuitionEscrow.depositTuition(
-            university,
-            DEPOSIT_AMOUNT,
-            "INV-006"
-        );
+        bytes32 paymentId = tuitionEscrow.depositTuition(university, DEPOSIT_AMOUNT, "INV-006");
         vm.stopPrank();
 
         vm.prank(admin);
@@ -266,11 +200,7 @@ contract TuitionEscrowTest is Test {
     function test_RefundPayment_Success() public {
         vm.startPrank(payer);
         usdc.approve(address(tuitionEscrow), DEPOSIT_AMOUNT);
-        bytes32 paymentId = tuitionEscrow.depositTuition(
-            university,
-            DEPOSIT_AMOUNT,
-            "INV-007"
-        );
+        bytes32 paymentId = tuitionEscrow.depositTuition(university, DEPOSIT_AMOUNT, "INV-007");
         vm.stopPrank();
 
         vm.startPrank(admin);
@@ -281,25 +211,15 @@ contract TuitionEscrowTest is Test {
         tuitionEscrow.refundPayment(paymentId);
         vm.stopPrank();
 
-        assertEq(
-            usdc.balanceOf(payer),
-            payerBalanceBefore + DEPOSIT_AMOUNT,
-            "Payer balance incorrect after refund"
-        );
+        assertEq(usdc.balanceOf(payer), payerBalanceBefore + DEPOSIT_AMOUNT, "Payer balance incorrect after refund");
         assertEq(
             usdc.balanceOf(address(tuitionEscrow)),
             contractBalanceBefore - DEPOSIT_AMOUNT,
             "Contract balance incorrect after refund"
         );
 
-        TuitionEscrow.Payment memory p = tuitionEscrow.getPaymentDetails(
-            paymentId
-        );
-        assertEq(
-            uint(p.status),
-            uint(TuitionEscrow.PaymentStatus.Refunded),
-            "Payment status not Refunded"
-        );
+        TuitionEscrow.Payment memory p = tuitionEscrow.getPaymentDetails(paymentId);
+        assertEq(uint256(p.status), uint256(TuitionEscrow.PaymentStatus.Refunded), "Payment status not Refunded");
     }
 
     function test_Fail_RefundPayment_NonExistent() public {
@@ -313,11 +233,7 @@ contract TuitionEscrowTest is Test {
     function test_Fail_RefundPayment_AlreadyReleased() public {
         vm.startPrank(payer);
         usdc.approve(address(tuitionEscrow), DEPOSIT_AMOUNT);
-        bytes32 paymentId = tuitionEscrow.depositTuition(
-            university,
-            DEPOSIT_AMOUNT,
-            "INV-008"
-        );
+        bytes32 paymentId = tuitionEscrow.depositTuition(university, DEPOSIT_AMOUNT, "INV-008");
         vm.stopPrank();
 
         vm.prank(admin);
@@ -332,11 +248,7 @@ contract TuitionEscrowTest is Test {
     function test_Fail_RefundPayment_AlreadyRefunded() public {
         vm.startPrank(payer);
         usdc.approve(address(tuitionEscrow), DEPOSIT_AMOUNT);
-        bytes32 paymentId = tuitionEscrow.depositTuition(
-            university,
-            DEPOSIT_AMOUNT,
-            "INV-009"
-        );
+        bytes32 paymentId = tuitionEscrow.depositTuition(university, DEPOSIT_AMOUNT, "INV-009");
         vm.stopPrank();
 
         vm.prank(admin);
@@ -351,47 +263,20 @@ contract TuitionEscrowTest is Test {
     function test_ReentrancyGuard_Deposit() public {
         vm.startPrank(payer);
         usdc.approve(address(tuitionEscrow), DEPOSIT_AMOUNT);
-        bytes32 paymentId = tuitionEscrow.depositTuition(
-            university,
-            DEPOSIT_AMOUNT,
-            "INV-REENTER-DEPOSIT"
-        );
+        bytes32 paymentId = tuitionEscrow.depositTuition(university, DEPOSIT_AMOUNT, "INV-REENTER-DEPOSIT");
         vm.stopPrank();
         assertTrue(paymentId != bytes32(0));
     }
 
     function test_GetPaymentId_Consistency() public view {
         uint256 nonce = 0;
-        bytes32 id1 = tuitionEscrow.getPaymentId(
-            payer,
-            university,
-            "INV-ID-TEST",
-            nonce
-        );
-        bytes32 id2 = tuitionEscrow.getPaymentId(
-            payer,
-            university,
-            "INV-ID-TEST",
-            nonce
-        );
-        bytes32 id3 = tuitionEscrow.getPaymentId(
-            payer,
-            university,
-            "INV-ID-TEST-DIFFERENT",
-            nonce
-        );
-        bytes32 id4 = tuitionEscrow.getPaymentId(
-            payer,
-            university,
-            "INV-ID-TEST",
-            nonce + 1
-        );
+        bytes32 id1 = tuitionEscrow.getPaymentId(payer, university, "INV-ID-TEST", nonce);
+        bytes32 id2 = tuitionEscrow.getPaymentId(payer, university, "INV-ID-TEST", nonce);
+        bytes32 id3 = tuitionEscrow.getPaymentId(payer, university, "INV-ID-TEST-DIFFERENT", nonce);
+        bytes32 id4 = tuitionEscrow.getPaymentId(payer, university, "INV-ID-TEST", nonce + 1);
 
         assertEq(id1, id2, "Payment ID should be consistent for same inputs");
-        assertTrue(
-            id1 != id3,
-            "Payment ID should differ for different invoice refs"
-        );
+        assertTrue(id1 != id3, "Payment ID should differ for different invoice refs");
         assertTrue(id1 != id4, "Payment ID should differ for different nonces");
     }
 }

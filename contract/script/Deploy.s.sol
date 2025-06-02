@@ -23,11 +23,7 @@ contract DeployTuitionEscrow is Script {
         payer = vm.addr(2);
         university = vm.addr(3);
 
-        MockERC20 usdc = new MockERC20(
-            "Mock USDC",
-            "mUSDC",
-            INITIAL_SUPPLY / 1e6
-        );
+        MockERC20 usdc = new MockERC20("Mock USDC", "mUSDC", INITIAL_SUPPLY / 1e6);
         console.log("USDC Token deployed to:", address(usdc));
 
         TuitionEscrow escrow = new TuitionEscrow(address(usdc), admin);
@@ -40,11 +36,7 @@ contract DeployTuitionEscrow is Script {
         usdc.approve(address(escrow), DEPOSIT_AMOUNT);
 
         vm.prank(payer);
-        bytes32 paymentId = escrow.depositTuition(
-            university,
-            DEPOSIT_AMOUNT,
-            "INV-001"
-        );
+        bytes32 paymentId = escrow.depositTuition(university, DEPOSIT_AMOUNT, "INV-001");
         console.logBytes32(paymentId);
         console.log("Tuition deposited with Payment ID shown above");
 
