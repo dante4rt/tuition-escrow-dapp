@@ -63,6 +63,10 @@ export const AdminPaymentList: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
+      // Get latest block number
+      const latestBlock = await publicClient.getBlockNumber();
+      // Calculate fromBlock: latest - 10_000, but not less than 0
+      const fromBlock = latestBlock > 10_000n ? latestBlock - 10_000n : 0n;
       const eventFragment = typedTuitionEscrowAbi.find(
         (item) => item.type === "event" && item.name === "PaymentDeposited"
       );
@@ -70,8 +74,8 @@ export const AdminPaymentList: React.FC = () => {
       const depositLogs = await publicClient.getLogs({
         address: typedTuitionEscrowAddress,
         event: eventFragment as AbiEvent,
-        fromBlock: BigInt(0),
-        toBlock: "latest",
+        fromBlock,
+        toBlock: latestBlock,
       });
 
       const newPaymentsMap = new Map<string, Payment>();
@@ -374,7 +378,7 @@ export const AdminPaymentList: React.FC = () => {
         <button
           onClick={fetchPastEventsAndDetails}
           disabled={isLoading || isActionWritePending || isActionConfirming}
-          className="p-2 rounded-md hover:bg-slate-700 transition-colors text-slate-400 hover:text-sky-300 disabled:opacity-50"
+          className="p-2 rounded-md cursor-pointer bg-transparent hover:bg-slate-700 transition-colors text-slate-400 hover:text-sky-300 disabled:opacity-50"
           title="Refresh payments"
         >
           <RefreshCw
@@ -475,7 +479,7 @@ export const AdminPaymentList: React.FC = () => {
                         processingPaymentId === p.paymentId ||
                         (chain && chain.id !== sepolia.id)
                       }
-                      className="text-emerald-400 hover:text-emerald-300 disabled:opacity-50 disabled:cursor-not-allowed p-2 rounded-md hover:bg-emerald-500/10 transition-colors flex items-center"
+                      className="cursor-pointer bg-transparent text-emerald-400 hover:text-emerald-300 disabled:opacity-50 disabled:cursor-not-allowed p-2 rounded-md hover:bg-emerald-500/10 transition-colors flex items-center"
                       title="Release Payment"
                     >
                       <CheckCircle size={18} className="mr-1" /> Release
@@ -489,7 +493,7 @@ export const AdminPaymentList: React.FC = () => {
                         processingPaymentId === p.paymentId ||
                         (chain && chain.id !== sepolia.id)
                       }
-                      className="text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed p-2 rounded-md hover:bg-red-500/10 transition-colors flex items-center"
+                      className="cursor-pointer bg-transparent text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed p-2 rounded-md hover:bg-red-500/10 transition-colors flex items-center"
                       title="Refund Payment"
                     >
                       <XCircle size={18} className="mr-1" /> Refund

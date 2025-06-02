@@ -64,10 +64,10 @@ const App: React.FC = () => {
 
   return (
     <AppAdminContext.Provider value={adminContextValue}>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 font-sans">
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 font-sans">
         <Navbar navigate={navigate} />
 
-        <main className="container mx-auto px-4 py-8">
+        <main className="flex-grow container mx-auto px-4 py-8">
           {currentPage === "home" && <HomePage />}
           {currentPage === "admin" && <AdminPage />}
         </main>
@@ -77,16 +77,13 @@ const App: React.FC = () => {
             <a href="#">Tuition Escrow dApp</a> &copy; {new Date().getFullYear()}
           </p>
         </footer>
+
         <Toaster
           position="bottom-right"
           toastOptions={{
             className: "bg-slate-700 text-slate-100 border border-slate-600 rounded-lg shadow-xl",
-            success: {
-              iconTheme: { primary: "#34d399", secondary: "#0f172a" },
-            },
-            error: {
-              iconTheme: { primary: "#f87171", secondary: "#0f172a" },
-            },
+            success: { iconTheme: { primary: "#34d399", secondary: "#0f172a" } },
+            error: { iconTheme: { primary: "#f87171", secondary: "#0f172a" } },
           }}
         />
       </div>

@@ -18,11 +18,11 @@ const universities = [
   },
   {
     name: "Gotham City College",
-    address: "0x22222222222222222222222222222222222222222" as `0x${string}`,
+    address: "0x26330aa1a1b40224daa82d06ee1cd6788445137b" as `0x${string}`,
   },
   {
     name: "Starling City Institute",
-    address: "0x33333333333333333333333333333333333333333" as `0x${string}`,
+    address: "0x501a9bc486f45f96fa0ddf8d1bc0174906477435" as `0x${string}`,
   },
 ];
 
@@ -31,6 +31,8 @@ const typedUsdcAddress = USDC_ADDRESS as `0x${string}`;
 
 export const DepositForm: React.FC = () => {
   const { address: accountAddress, chain } = useAccount();
+  const [usdcDecimals, setUsdcDecimals] = useState<number>(6);
+
   const {
     writeContractAsync,
     data: hash,
@@ -41,12 +43,12 @@ export const DepositForm: React.FC = () => {
   const [selectedUniversity, setSelectedUniversity] = useState<`0x${string}`>(
     universities[0]?.address || "0x"
   );
+
   const [amount, setAmount] = useState<string>("");
   const [invoiceRef, setInvoiceRef] = useState<string>("");
   const [currentStep, setCurrentStep] = useState<
     "idle" | "approving" | "depositing" | "waitingForTx"
   >("idle");
-  const [usdcDecimals, setUsdcDecimals] = useState<number>(6);
 
   const { data: fetchedUsdcDecimals } = useReadContract({
     abi: USDC_ABI,
@@ -54,12 +56,6 @@ export const DepositForm: React.FC = () => {
     functionName: "decimals",
     query: { enabled: !!typedUsdcAddress && !!accountAddress },
   });
-
-  useEffect(() => {
-    if (fetchedUsdcDecimals) {
-      setUsdcDecimals(Number(fetchedUsdcDecimals));
-    }
-  }, [fetchedUsdcDecimals]);
 
   const {
     isLoading: isConfirming,
@@ -141,6 +137,12 @@ export const DepositForm: React.FC = () => {
     isWritePending || isConfirming || currentStep === "approving" || currentStep === "depositing";
 
   useEffect(() => {
+    if (fetchedUsdcDecimals) {
+      setUsdcDecimals(Number(fetchedUsdcDecimals));
+    }
+  }, [fetchedUsdcDecimals]);
+
+  useEffect(() => {
     if (isConfirmed) {
       toast.success(
         `Transaction confirmed! ${
@@ -163,6 +165,69 @@ export const DepositForm: React.FC = () => {
       setCurrentStep("idle");
     }
   }, [isConfirmed, receiptError, currentStep]);
+
+  const USDCBalance: React.FC<{
+    address: string;
+    usdcAddress: `0x${string}`;
+    usdcDecimals: number;
+  }> = ({ address, usdcAddress, usdcDecimals }) => {
+    const { data, isLoading, error } = useReadContract({
+      abi: USDC_ABI,
+      address: usdcAddress,
+      functionName: "balanceOf",
+      args: [address],
+      query: { enabled: !!address && !!usdcAddress },
+    });
+    if (isLoading) return <div className="text-xs text-slate-400 mb-1">Balance: Loading...</div>;
+    if (error) return <div className="text-xs text-red-400 mb-1">Balance: Error</div>;
+
+    let formatted = "0";
+
+    if (data) {
+      const num = Number(formatUnits(data as bigint, usdcDecimals));
+      formatted = num.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    }
+
+    return <div className="text-xs text-slate-400 mb-1">Balance: {formatted} USDC</div>;
+  };
+
+  const USDCBalanceButtons: React.FC<{
+    usdcDecimals: number;
+    usdcAddress: `0x${string}`;
+    accountAddress: string;
+    setAmount: (val: string) => void;
+  }> = ({ usdcDecimals, usdcAddress, accountAddress, setAmount }) => {
+    const { data, isLoading, error } = useReadContract({
+      abi: USDC_ABI,
+      address: usdcAddress,
+      functionName: "balanceOf",
+      args: [accountAddress],
+      query: { enabled: !!accountAddress && !!usdcAddress },
+    });
+    if (isLoading || error || !data) return null;
+    const balance = Number(formatUnits(data as bigint, usdcDecimals));
+    const handleClick = (pct: number) => {
+      const val = ((balance * pct) / 100).toFixed(2);
+      setAmount(val);
+    };
+    return (
+      <div className="flex gap-2 mt-2">
+        {[25, 50, 75, 100].map((pct) => (
+          <button
+            key={pct}
+            type="button"
+            className="flex-1 cursor-pointer bg-slate-600 hover:bg-sky-500 text-xs text-slate-100 rounded-lg py-1 transition-colors duration-150"
+            onClick={() => handleClick(pct)}
+          >
+            {pct}%
+          </button>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <form
@@ -214,9 +279,18 @@ export const DepositForm: React.FC = () => {
       </div>
 
       <div>
-        <label htmlFor="amount" className="block text-sm font-semibold text-slate-300 mb-1">
-          <DollarSign size={16} className="inline mr-2" /> Amount (USDC) - {usdcDecimals} decimals
-        </label>
+        <div className="flex items-center justify-between mb-1">
+          <label htmlFor="amount" className="block text-sm font-semibold text-slate-300">
+            <DollarSign size={16} className="inline mr-2" /> Amount (USDC)
+          </label>
+          {accountAddress && (
+            <USDCBalance
+              address={accountAddress}
+              usdcAddress={typedUsdcAddress}
+              usdcDecimals={usdcDecimals}
+            />
+          )}
+        </div>
         <input
           type="number"
           id="amount"
@@ -229,6 +303,15 @@ export const DepositForm: React.FC = () => {
           required
           disabled={isSubmitting}
         />
+
+        {accountAddress && (
+          <USDCBalanceButtons
+            usdcDecimals={usdcDecimals}
+            usdcAddress={typedUsdcAddress}
+            accountAddress={accountAddress}
+            setAmount={setAmount}
+          />
+        )}
       </div>
 
       <div>
