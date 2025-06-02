@@ -64,7 +64,7 @@ forge build
 forge test -vvv
 ```
 
-- Edit `.env` with your Sepolia RPC, private key, and USDC address (see below).
+- Edit `.env` with your Sepolia RPC, private key, payer private key and Etherscan API Key.
 - Deploy:
 
 ```bash
